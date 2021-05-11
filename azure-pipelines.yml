@@ -3,15 +3,50 @@
 # Add steps that run tests, create a NuGet package, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
 
+# Trigger this build pipeline on any branch 
 trigger:
-- master
+- '*'
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: 'ubuntu-18.04'
+  demands:
+  - npm
 
 variables:
   buildConfiguration: 'Release'
 
 steps:
-- script: dotnet build --configuration $(buildConfiguration)
-  displayName: 'dotnet build $(buildConfiguration)'
+# Use specific version of the SDK
+- task: UseDotNet@2
+  displayName: 'Use .NET Core SDK 3.1.300'
+  inputs:
+    packageType: sdk
+    version: 3.1.300
+# Use NPM version 1 to run npm install --verbose as false (you need npm on the build system)
+- task: Npm@1
+  displayName: 'Run npm install'
+  inputs:
+    verbose: false
+# Convert Sass Assets into plain CSS . Script task is a shortcut for CmdLine@2
+- script: './node_modules/.bin/node-sass Tailspin.SpaceGame.Web/wwwroot --output Tailspin.SpaceGame.Web/wwwroot'
+  displayName: 'Compile Sass assets'
+# Minify JS and other required files
+- task: gulp@1
+  displayName: 'Run gulp tasks'
+# Output the Build definition name, build id and build number of completed build into a buildinfo.txt file in the /wwwroot directory
+- script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
+  displayName: 'Write build info'
+  workingDirectory: Tailspin.SpaceGame.Web/wwwroot
+# Use the dotnet CLI to restore any dependencies (like npm install but for dotnet)
+- task: DotNetCoreCLI@2
+  displayName: 'Restore project dependencies'
+  inputs:
+    command: 'restore'
+    projects: '**/*.csproj'
+# Build the ASP.NET Core application
+- task: DotNetCoreCLI@2
+  displayName: 'Build the project - Release'
+  inputs:
+    command: 'build'
+    arguments: '--no-restore --configuration Release'
+    projects: '**/*.csproj'
