@@ -1,4 +1,4 @@
-
+[![Build Status](https://dev.azure.com/nathanbrown7/nathanbrown7/_apis/build/status/nbrown730.mslearn-tailspin-spacegame-web?branchName=build-pipeline)](https://dev.azure.com/nathanbrown7/nathanbrown7/_build/latest?definitionId=1&branchName=build-pipeline)
 # Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
