@@ -12,23 +12,27 @@ pool:
   demands:
   - npm
 
+# Variables we use a lot that might change during the lifetime of this pipeline
 variables:
   buildConfiguration: 'Release'
+  wwwrootDir: 'Tailspin.SpaceGame.Web/wwwroot'
+  dotnetSdkVersion: '3.1.300'
 
 steps:
 # Use specific version of the SDK
 - task: UseDotNet@2
-  displayName: 'Use .NET Core SDK 3.1.300'
+  displayName: 'Use .NET Core SDK $(dotnetSdkVersion)'
   inputs:
     packageType: sdk
-    version: 3.1.300
+    version: '$(dotnetSdkVersion)'
+
 # Use NPM version 1 to run npm install --verbose as false (you need npm on the build system)
 - task: Npm@1
   displayName: 'Run npm install'
   inputs:
     verbose: false
 # Convert Sass Assets into plain CSS . Script task is a shortcut for CmdLine@2
-- script: './node_modules/.bin/node-sass Tailspin.SpaceGame.Web/wwwroot --output Tailspin.SpaceGame.Web/wwwroot'
+- script: './node_modules/.bin/node-sass $(wwwrootDir) --output $(wwwrootDir)'
   displayName: 'Compile Sass assets'
 # Minify JS and other required files
 - task: gulp@1
@@ -36,7 +40,7 @@ steps:
 # Output the Build definition name, build id and build number of completed build into a buildinfo.txt file in the /wwwroot directory
 - script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
   displayName: 'Write build info'
-  workingDirectory: Tailspin.SpaceGame.Web/wwwroot
+  workingDirectory: $(wwwrootDir)
 # Use the dotnet CLI to restore any dependencies (like npm install but for dotnet)
 - task: DotNetCoreCLI@2
   displayName: 'Restore project dependencies'
@@ -45,8 +49,21 @@ steps:
     projects: '**/*.csproj'
 # Build the ASP.NET Core application
 - task: DotNetCoreCLI@2
-  displayName: 'Build the project - Release'
+  displayName: 'Build the project - $(buildConfiguration)'
   inputs:
     command: 'build'
-    arguments: '--no-restore --configuration Release'
+    arguments: '--no-restore --configuration $(buildConfiguration)'
     projects: '**/*.csproj'
+# Output/publish/package the build result + dependencies to whatever the staging directory is /Release and zip it
+- task: DotNetCoreCLI@2
+  displayName: 'Publish the Project - $(buildConfiguration)'
+  inputs:
+    command: 'publish'
+    projects: '**/*.csproj'
+    publishWebProjects: false
+    arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
+    zipAfterPublish: true
+# Publish the build artifacts to Azure Pipelines (condition succeeded means only run if previous task has succeeded)
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact - Drop'
+  condition: succeeded()
