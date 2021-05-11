@@ -47,22 +47,38 @@ steps:
   inputs:
     command: 'restore'
     projects: '**/*.csproj'
-# Build the ASP.NET Core application
-- task: DotNetCoreCLI@2
-  displayName: 'Build the project - $(buildConfiguration)'
-  inputs:
-    command: 'build'
-    arguments: '--no-restore --configuration $(buildConfiguration)'
-    projects: '**/*.csproj'
+
+
+# Build the ASP.NET Core application 
+#- used if we are not doing templates
+##- task: DotNetCoreCLI@2
+##  displayName: 'Build the project - $(buildConfiguration)'
+##  inputs:
+##    command: 'build'
+##   arguments: '--no-restore --configuration $(buildConfiguration)'
+##    projects: '**/*.csproj'
+
 # Output/publish/package the build result + dependencies to whatever the staging directory is /Release and zip it
-- task: DotNetCoreCLI@2
-  displayName: 'Publish the Project - $(buildConfiguration)'
-  inputs:
-    command: 'publish'
-    projects: '**/*.csproj'
-    publishWebProjects: false
-    arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
-    zipAfterPublish: true
+#- used if we are not using templates
+##- task: DotNetCoreCLI@2
+##  displayName: 'Publish the Project - $(buildConfiguration)'
+##  inputs:
+##    command: 'publish'
+##    projects: '**/*.csproj'
+##    publishWebProjects: false
+##    arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
+##    zipAfterPublish: true
+
+# Use the template step instead and inject parameters into it for reusable steps from this parent PaC file
+# Benefit of this way is we can do the above two steps for both Debug and release at the same time!
+- template: 'templates/build.yml'
+  parameters:
+    buildConfiguration: 'Debug'
+
+- template: 'templates/build.yml'
+  parameters:
+    buildConfiguration: 'Release'
+
 # Publish the build artifacts to Azure Pipelines (condition succeeded means only run if previous task has succeeded)
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact - Drop'
