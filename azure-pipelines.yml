@@ -84,9 +84,16 @@ steps:
 
 # Analyses any open source dependencies for known vulnerabilities , and licenses
 # Produces report you can see within your AZDO organisation
+# Optionally add condition to only run this when PR is raised and the target to merge into is master
 ##- task: WhiteSource Bolt@20
 ##  displayName: 'Run WhiteSource Bolt'
-
+##    condition: |
+##     and
+##     (
+##         succeeded(),
+##         eq(variables['Build.Reason'], 'PullRequest'),
+##         eq(variables['System.PullRequest.TargetBranch'], 'master')
+##     )
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: drop'
   condition: succeeded()
