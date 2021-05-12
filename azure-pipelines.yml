@@ -82,6 +82,11 @@ steps:
     arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
     zipAfterPublish: true
 
+# Analyses any open source dependencies for known vulnerabilities , and licenses
+# Produces report you can see within your AZDO organisation
+##- task: WhiteSource Bolt@20
+##  displayName: 'Run WhiteSource Bolt'
+
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: drop'
   condition: succeeded()
